@@ -1,4 +1,7 @@
 import random
+import pickle
+import os
+import sys
 
 class Card:
     def __init__(self, color, value):
@@ -301,9 +304,14 @@ class Game:
 
     def get_card_choice(self, valid_cards):
         while True:
-            choice = input("Enter the index of the card you want to play or 'D' to draw a card: ").strip()
+            choice = input("Enter the index of the card you want to play, 'D' to draw a card, or 'S' to save and exit: ").strip()
             if choice.lower() == "d":
                 return "Draw a card"
+            elif choice.lower() == "s":
+                self.save_game()
+                print("Game saved and exited.")
+                # uses sys.exit to quit game
+                sys.exit(0)  
             else:
                 try:
                     choice = int(choice)
@@ -314,18 +322,55 @@ class Game:
                 except ValueError:
                     print("Invalid input! Please enter an integer.")
 
+
     def get_next_player(self):
         return self._players[self.get_next_player_index()]
+    
+    def save_game(self):
+        with open('saved_game.pkl', 'wb') as file:
+            pickle.dump(self, file)
+        print("Game has been saved.")
 
+    @staticmethod
+    def load_game():
+        if os.path.exists('saved_game.pkl'):
+            with open('saved_game.pkl', 'rb') as file:
+                return pickle.load(file)
+        else:
+            print("No saved game found.")
+            return None
 
 def main():
+    game = None
+    while True:
+        command = input("Enter a command (new, save, load, quit): ")
+        if command.lower() == 'new':
+            game = start_new_game()
+        elif command.lower() == 'save':
+            if game is None:
+                print("No active game to save. Start a new game first.")
+            else:
+                save_game(game)
+        elif command.lower() == 'load':
+            if not os.path.exists('game.pkl'):
+                print("No saved game to load. Start and save a new game first.")
+            else:
+                game = load_game()
+                if game is not None:
+                    print("Game loaded successfully.")
+                else:
+                    print("Failed to load the game.")
+        elif command.lower() == 'quit':
+            break
+        else:
+            print("Invalid command.")
+
+
+def start_new_game():
     while True:
         try:
             num_players = int(input("Enter the number of players: "))
-            if num_players > 1:
-                break
-            else:
-                print("The number of players must be greater than 1.")
+            break
         except ValueError:
             print("Invalid input! Please enter an integer.")
 
@@ -344,6 +389,8 @@ def main():
 
     game = Game(players, house_rules)
     game.start_game()
+
+    return game
 
 if __name__ == "__main__":
     main()
