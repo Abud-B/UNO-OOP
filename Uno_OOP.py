@@ -100,6 +100,13 @@ class Player:
                 self._hand.remove(card)
                 discard_pile.append(card)
 
+                # check if the card is a swap card
+                if game._house_rules and card.is_swap():
+                    # If it's a swap card, ask the player who they want to swap hands with
+                    other_player = self.select_other_player(game._players)
+                    self._hand, other_player._hand = other_player._hand, self._hand
+                    print(f"{self._name} swaps hands with {other_player._name}!")
+
                 if card.get_value() == "Wild":
                     color = self.select_color()
                     card.set_color(color)
@@ -146,15 +153,28 @@ class Player:
                     print("Invalid choice! Please enter a valid index.")
             except ValueError:
                 print("Invalid input! Please enter an integer.")
+    
+    def select_other_player(self, players):
+            print("Select a player to swap hands with:")
+            for i, player in enumerate(players):
+                if player is not self:
+                    print(f"{i + 1}. {player._name}")
+            while True:
+                player_index = input("Enter the number of the player: ")
+                if player_index.isdigit() and 1 <= int(player_index) <= len(players) and players[int(player_index) - 1] is not self:
+                    return players[int(player_index) - 1]
+                print("Invalid choice! Please enter a valid number.")
 
 
 class Game:
-    def __init__(self, players):
+    def __init__(self, players, house_rules=False):
         self._players = players
         self._deck = Deck()
         self._discard_pile = []
         self._direction = 1
-        self._current_player_index = 1
+        self._current_player_index = 0
+        #house rules flag
+        self._house_rules = house_rules
 
     def start_game(self):
         self._deck.create_deck()
@@ -223,6 +243,29 @@ class Game:
 
         card_choice = self.get_card_choice(valid_cards)
 
+        if self._house_rules and card_choice.get_value() in ["Draw Two", "+4"]:
+                    # ff stacking is toggled and a draw card is played, check if the next player can stack
+                    next_player = self.get_next_player()
+                    for card in next_player._hand:
+                        if card.get_value() == card_choice.get_value():
+                            print("Stacking enabled!")
+                            card_to_stack = card
+                            break
+                    else:
+                        card_to_stack = None
+
+                    if card_to_stack is not None:
+                        # ff the next player can stack, play their card and skip the current player's turn
+                        print(f"{next_player.name} stacks a {card_choice}!")
+                        next_player.play_card(card_to_stack, self._discard_pile, self)
+                        self._current_player_index = (self._current_player_index + 2 * self._direction) % len(self._players)
+                    else:
+                        # ff the next player can't stack, apply the penalty and move on to the next player
+                        next_player.draw_card(self._deck, 2 if card_choice.get_value() == "Draw Two" else 4)
+                        self._current_player_index = (self._current_player_index + self._direction) % len(self._players)
+        else:
+            self._current_player_index = (self._current_player_index + self._direction) % len(self._players)
+
         if card_choice != "Draw a card":
             current_player.play_card(card_choice, self._discard_pile, self)
         else:
@@ -271,17 +314,29 @@ class Game:
         return self._players[self.get_next_player_index()]
 
 
-
 def main():
-    num_players = int(input("Enter the number of players: "))
+    while True:
+        try:
+            num_players = int(input("Enter the number of players: "))
+            break
+        except ValueError:
+            print("Invalid input! Please enter an integer.")
+
     players = []
     for i in range(num_players):
         name = input(f"Enter name for Player {i+1}: ")
         players.append(Player(name))
 
-    game = Game(players)
-    game.start_game()
+    while True:
+        house_rules_input = input("Do you want to enable house rules? (yes/no): ").lower().strip()
+        if house_rules_input in ["yes", "no"]:
+            break
+        print("Invalid input! Please enter 'yes' or 'no'.")
 
+    house_rules = house_rules_input == "yes"
+
+    game = Game(players, house_rules)
+    game.start_game()
 
 if __name__ == "__main__":
     main()
