@@ -1,2 +1,4 @@
-# UNO OOP
- uno game, coded using OOP 
+# UNO
+ UNO game, coded using OOP 
+
+Follows traditional rules of UNO. 
