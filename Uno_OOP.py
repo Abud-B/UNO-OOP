@@ -62,6 +62,9 @@ class Player:
 
     def has_no_cards(self):
         return len(self._hand) == 0
+    
+    def get_hand(self):
+        return self._hand
 
     def is_valid_move(self, card, top_card, game):
         return (
@@ -92,6 +95,7 @@ class Player:
                     valid_colors = game.get_deck().get_valid_colors()
                     color = self.select_color(valid_colors)
                     card.set_color(color)
+                    valid_colors.append(color)
 
                 elif card.get_value() == "+4":
                     valid_colors = game.get_deck().get_valid_colors()
@@ -102,6 +106,8 @@ class Player:
                     next_player.draw_card(game.get_deck(), 4)
                     game.skip_turn()
 
+                if card.get_color() != "Wild" and card.get_color() in game.get_deck().get_valid_colors():
+                    game.get_deck().get_valid_colors().remove(card.get_color())
 
                 if card.get_value() == "Skip":
                     game.skip_turn()
@@ -110,10 +116,12 @@ class Player:
                 elif card.get_value() == "Draw Two":
                     next_player = game.get_next_player()
                     next_player.draw_card(game.get_deck(), 2)
+                    game.skip_turn()  # Skip the next player's turn when a "Draw Two" card is played
             else:
                 print("Invalid move! The selected card cannot be played.")
         else:
             print("Invalid choice! Please enter a valid index.")
+
 
     def select_color(self, valid_colors):
         print("Select a valid color:")
@@ -192,27 +200,31 @@ class Game:
     def play_turn(self):
         current_player = self.current_player()
         print(f"\nCurrent player: {current_player.name}")
-        print(f"Your hand: {', '.join(f'{i + 1}. {card}' for i, card in enumerate(current_player._hand))}")
+        print(f"Your hand: {', '.join(f'{i + 1}. {card}' for i, card in enumerate(current_player.get_hand()))}")
 
         valid_cards = self.get_valid_moves()
+        print("Valid cards:")
+        for i, card in enumerate(valid_cards):
+            print(f"{i + 1}. {card}")
 
-        if valid_cards:
-            print("Valid cards:")
-            for i, card in enumerate(valid_cards):
-                print(f"{i + 1}. {card}")
+        card_choice = self.get_card_choice(valid_cards)
 
-        # Provide option to draw a card even if there are valid cards
-        print(f"{len(valid_cards) + 1}. Draw a card")
-
-        card = self.get_card_choice(valid_cards)
-        if card == "Draw a card":
-            current_player.draw_card(self._deck, 1)
-            print(f"New card drawn: {current_player._hand[-1]}")
-            self._current_player_index = (self._current_player_index + self._direction) % len(self._players)
+        if card_choice != "Draw a card":
+            current_player.play_card(card_choice, self._discard_pile, self)
         else:
-            current_player.play_card(card, self._discard_pile, self)
-            self._current_player_index = (self._current_player_index + self._direction) % len(self._players)
+            drawn_card = self._deck.draw_card()
+            current_player.hand.append(drawn_card)
+            print(f"You drew a {drawn_card}.")
+            
+            # check if the drawn card is valid
+            top_card = self._discard_pile[-1]
+            if current_player.is_valid_move(drawn_card, top_card, self):
+                print(f"The card you drew is valid. You may choose to play it.")
+                decision = input("Do you want to play the card you drew? (Y/N): ")
+                if decision.lower() == 'y':
+                    current_player.play_card(drawn_card, self._discard_pile, self)
 
+        self._current_player_index = (self._current_player_index + self._direction) % len(self._players)
         self.print_game_status()
 
     def get_valid_moves(self):
@@ -228,17 +240,18 @@ class Game:
 
     def get_card_choice(self, valid_cards):
         while True:
-            try:
-                choice = int(input("Enter the index of the card you want to play or draw a card: "))
-                if 1 <= choice <= len(valid_cards) + 1:
-                    if choice == len(valid_cards) + 1:
-                        return "Draw a card"
-                    else:
+            choice = input("Enter the index of the card you want to play or 'D' to draw a card: ").strip()
+            if choice.lower() == "d":
+                return "Draw a card"
+            else:
+                try:
+                    choice = int(choice)
+                    if 1 <= choice <= len(valid_cards):
                         return valid_cards[choice - 1]
-                else:
-                    print("Invalid choice! Please enter a valid index.")
-            except ValueError:
-                print("Invalid input! Please enter an integer.")
+                    else:
+                        print("Invalid choice! Please enter a valid index.")
+                except ValueError:
+                    print("Invalid input! Please enter an integer.")
 
     def get_next_player(self):
         return self._players[self.get_next_player_index()]
