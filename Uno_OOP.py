@@ -139,31 +139,35 @@ class Player:
 
 
     def select_color(self):
-        valid_colors = ['Red', 'Yellow', 'Green', 'Blue']
-        print("Select a color:")
-        for i, color in enumerate(valid_colors):
-            print(f"{i + 1}. {color}")
+            valid_colors = ['Red', 'Yellow', 'Green', 'Blue']
+            print("Select a color:")
+            for i, color in enumerate(valid_colors):
+                print(f"{i + 1}. {color}")
 
-        while True:
-            try:
-                choice = int(input("Enter the index of the color: "))
-                if 1 <= choice <= len(valid_colors):
-                    return valid_colors[choice - 1]
-                else:
-                    print("Invalid choice! Please enter a valid index.")
-            except ValueError:
-                print("Invalid input! Please enter an integer.")
+            while True:
+                try:
+                    choice = int(input("Enter the index of the color: "))
+                    if 1 <= choice <= len(valid_colors):
+                        return valid_colors[choice - 1]
+                    else:
+                        print("Invalid choice! Please enter a valid index.")
+                except ValueError:
+                    print("Invalid input! Please enter an integer.")
     
     def select_other_player(self, players):
-            print("Select a player to swap hands with:")
-            for i, player in enumerate(players):
-                if player is not self:
-                    print(f"{i + 1}. {player._name}")
-            while True:
-                player_index = input("Enter the number of the player: ")
-                if player_index.isdigit() and 1 <= int(player_index) <= len(players) and players[int(player_index) - 1] is not self:
-                    return players[int(player_index) - 1]
+        print("Select a player to swap hands with:")
+        other_players = [player for player in players if player is not self]
+        for i, player in enumerate(other_players):
+            print(f"{i + 1}. {player._name}")
+            
+        while True:
+            try:
+                player_index = int(input("Enter the number of the player: "))
+                if 1 <= player_index <= len(other_players):
+                    return other_players[player_index - 1]
                 print("Invalid choice! Please enter a valid number.")
+            except ValueError:
+                print("Invalid input! Please enter an integer.")
 
 
 class Game:
@@ -318,7 +322,10 @@ def main():
     while True:
         try:
             num_players = int(input("Enter the number of players: "))
-            break
+            if num_players > 1:
+                break
+            else:
+                print("The number of players must be greater than 1.")
         except ValueError:
             print("Invalid input! Please enter an integer.")
 
