@@ -2,11 +2,14 @@ import random
 import pickle
 import os
 import sys
+import time
 
 class Card:
     def __init__(self, color, value):
         self._color = color
         self._value = value
+        self._is_swap = value == "Swap"
+
 
     def __str__(self):
         if self.get_value() in ['Wild', '+4']:
@@ -23,6 +26,9 @@ class Card:
     def get_value(self):
         return self._value
 
+    def is_swap(self):
+        return self._is_swap
+
 
 class Deck:
     def __init__(self):
@@ -31,7 +37,7 @@ class Deck:
     def create_deck(self):
             colors = ['Red', 'Yellow', 'Green', 'Blue']
             values = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', 'Draw Two']
-            special_values = ['Wild', '+4']
+            special_values = ['Wild', '+4', 'Swap']
 
             for color in colors:
                 for value in values:
@@ -48,6 +54,8 @@ class Deck:
 
     def draw_card(self):
         return self._cards.pop()
+
+
 
 class Player:
     def __init__(self, name):
@@ -72,7 +80,7 @@ class Player:
     def add_card(self, card):
         self._hand.append(card)
 
-    def is_valid_move(self, card, top_card, game):
+    def is_valid_move(self, card, top_card):
             if card.get_value() in ["Wild", "+4"]:
                 if card.get_value() == "+4":
                     # Check if player has no other cards of the current color in their hand
@@ -90,7 +98,7 @@ class Player:
         if card in self._hand:
             top_card = discard_pile[-1]
 
-            if self.is_valid_move(card, top_card, game):
+            if self.is_valid_move(card, top_card):
                 # if the player is about to have one card left, ask them to say 'UNO'
                 if len(self._hand) == 2:
                     say_uno = input("You're about to have only one card left! Say 'UNO' (Y/N): ")
@@ -124,7 +132,7 @@ class Player:
                 if card.get_value() == "Skip":
                     game.skip_turn()
                 elif card.get_value() == "Reverse":
-                     # if there are only two players treat reverse as a skip
+                    # if there are only two players treat reverse as a skip
                     if len(game._players) == 2: 
                         game.skip_turn()  
                     else:
@@ -139,6 +147,7 @@ class Player:
 
         else:
             print("Invalid choice! Please enter a valid index.")
+
 
 
     def select_color(self):
@@ -250,43 +259,42 @@ class Game:
 
         card_choice = self.get_card_choice(valid_cards)
 
-        if self._house_rules and card_choice.get_value() in ["Draw Two", "+4"]:
-                    # ff stacking is toggled and a draw card is played, check if the next player can stack
-                    next_player = self.get_next_player()
-                    for card in next_player._hand:
-                        if card.get_value() == card_choice.get_value():
-                            print("Stacking enabled!")
-                            card_to_stack = card
-                            break
-                    else:
-                        card_to_stack = None
+        if isinstance(card_choice, Card) and self._house_rules and card_choice.get_value() in ["Draw Two", "+4"]:
+            # ff stacking is toggled and a draw card is played, check if the next player can stack
+            next_player = self.get_next_player()
+            for card in next_player._hand:
+                if card.get_value() == card_choice.get_value():
+                    print("Stacking enabled!")
+                    card_to_stack = card
+                    break
+            else:
+                card_to_stack = None
 
-                    if card_to_stack is not None:
-                        # ff the next player can stack, play their card and skip the current player's turn
-                        print(f"{next_player.name} stacks a {card_choice}!")
-                        next_player.play_card(card_to_stack, self._discard_pile, self)
-                        self._current_player_index = (self._current_player_index + 2 * self._direction) % len(self._players)
-                    else:
-                        # ff the next player can't stack, apply the penalty and move on to the next player
-                        next_player.draw_card(self._deck, 2 if card_choice.get_value() == "Draw Two" else 4)
-                        self._current_player_index = (self._current_player_index + self._direction) % len(self._players)
+            if card_to_stack is not None:
+                # if the next player can stack, play their card and skip the current player's turn
+                print(f"{next_player.name} stacks a {card_choice}!")
+                next_player.play_card(card_to_stack, self._discard_pile, self)
+                self._current_player_index = (self._current_player_index + self._direction) % len(self._players)
+            else:
+                # if the next player can't stack, apply the penalty and move on to the next player
+                next_player.draw_card(self._deck, 2 if card_choice.get_value() == "Draw Two" else 4)
+                self._current_player_index = (self._current_player_index + self._direction) % len(self._players)
         else:
-            self._current_player_index = (self._current_player_index + self._direction) % len(self._players)
-
-        if card_choice != "Draw a card":
-            current_player.play_card(card_choice, self._discard_pile, self)
-        else:
-            drawn_card = self._deck.draw_card()
-            current_player.add_card(drawn_card)
-            print(f"You drew a {drawn_card}.")
-                    
-            # check if the drawn card is valid
-            top_card = self._discard_pile[-1]
-            if current_player.is_valid_move(drawn_card, top_card, self):
-                print(f"The card you drew is valid. You may choose to play it.")
-                decision = input("Do you want to play the card you drew? (Y/N): ")
-                if decision.lower() == 'y':
-                    current_player.play_card(drawn_card, self._discard_pile, self)
+            if card_choice != "Draw a card":
+                current_player.play_card(card_choice, self._discard_pile, self)
+                self._current_player_index = (self._current_player_index + self._direction) % len(self._players)
+            else:
+                drawn_card = self._deck.draw_card()
+                current_player.add_card(drawn_card)
+                print(f"You drew a {drawn_card}.")
+                
+                # check if the drawn card is valid
+                top_card = self._discard_pile[-1]
+                if current_player.is_valid_move(drawn_card, top_card):
+                    print(f"The card you drew is valid. You may choose to play it.")
+                    decision = input("Do you want to play the card you drew? (Y/N): ")
+                    if decision.lower() == 'y':
+                        current_player.play_card(drawn_card, self._discard_pile, self)
 
         self._current_player_index = (self._current_player_index + self._direction) % len(self._players)
         self.print_game_status()
@@ -324,12 +332,25 @@ class Game:
 
 
     def get_next_player(self):
+        # return index of next player
+        return self._players[self.get_next_player_index()]
+    
+    def get_next_player(self):
+        # return player object of next player
         return self._players[self.get_next_player_index()]
     
     def save_game(self):
         with open('saved_game.pkl', 'wb') as file:
             pickle.dump(self, file)
         print("Game has been saved.")
+
+    def resume_game(self):
+        self.print_game_status()
+        while True:
+            if self.is_game_over():
+                print("Game Over!")
+                break
+            self.play_turn()
 
     @staticmethod
     def load_game():
@@ -350,17 +371,21 @@ def main():
             if game is None:
                 print("No active game to save. Start a new game first.")
             else:
-                save_game(game)
+                game.save_game()
         elif command.lower() == 'load':
-            if not os.path.exists('game.pkl'):
+            if not os.path.exists('saved_game.pkl'):
                 print("No saved game to load. Start and save a new game first.")
             else:
-                game = load_game()
+                game = Game.load_game()
                 if game is not None:
                     print("Game loaded successfully.")
+                    #load and start game
+                    game.resume_game()  
                 else:
                     print("Failed to load the game.")
         elif command.lower() == 'quit':
+            print("Game quitting\nGoodbye!")
+            time.sleep(5)
             break
         else:
             print("Invalid command.")
