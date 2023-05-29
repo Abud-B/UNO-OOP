@@ -43,10 +43,12 @@ class Deck:
                 for value in values:
                     for _ in range(2):
                         self._cards.append(Card(colour, value))
-                self._cards.append(Card(colour, '0'))  # Only one '0' card per colour
-
+                # Only one 0 card per colour
+                self._cards.append(Card(colour, '0'))  
             for value in special_values:
-                for _ in range(4):  # Four 'Wild' and '+4' cards each
+                # Four wild and +4 cards each
+                for _ in range(4):  
+                    #no colour assigned initially to the card
                     self._cards.append(Card(None, value))  # No colour assigned initially
 
     def shuffle(self):
@@ -151,6 +153,7 @@ class Player:
 
 
     def select_colour(self):
+            # method to select colour for a wild or +4 card
             valid_colours = ['Red', 'Yellow', 'Green', 'Blue']
             print("Select a colour:")
             for i, colour in enumerate(valid_colours):
@@ -167,6 +170,7 @@ class Player:
                     print("Invalid input! Please enter an integer.")
     
     def select_other_player(self, players):
+        # method to choose which player to swap with when playing a swap card
         print("Select a player to swap hands with:")
         other_players = [player for player in players if player is not self]
         for i, player in enumerate(other_players):
@@ -300,6 +304,7 @@ class Game:
         self.print_game_status()
 
     def get_valid_moves(self):
+        #return valid moves player can play
         top_card = self._discard_pile[-1]
         valid_moves = []
 
@@ -335,16 +340,14 @@ class Game:
         # return index of next player
         return self._players[self.get_next_player_index()]
     
-    def get_next_player(self):
-        # return player object of next player
-        return self._players[self.get_next_player_index()]
-    
     def save_game(self):
+        # save game using pickle
         with open('saved_game.pkl', 'wb') as file:
             pickle.dump(self, file)
         print("Game has been saved.")
 
     def resume_game(self):
+        # when a game is loaded start the game loop again
         self.print_game_status()
         while True:
             if self.is_game_over():
@@ -352,6 +355,7 @@ class Game:
                 break
             self.play_turn()
 
+    # load method is bound to Game class
     @staticmethod
     def load_game():
         if os.path.exists('saved_game.pkl'):
@@ -373,6 +377,7 @@ def main():
             else:
                 game.save_game()
         elif command.lower() == 'load':
+            # check if saved game exists
             if not os.path.exists('saved_game.pkl'):
                 print("No saved game to load. Start and save a new game first.")
             else:
@@ -394,6 +399,7 @@ def main():
 def start_new_game():
     while True:
         try:
+            #keep asking user for num of players if input invalid
             num_players = int(input("Enter the number of players: "))
             break
         except ValueError:
@@ -405,11 +411,12 @@ def start_new_game():
         players.append(Player(name))
 
     while True:
+        #keep asking user for house rules if input invalid
         house_rules_input = input("Do you want to enable house rules? (yes/no): ").lower().strip()
         if house_rules_input in ["yes", "no"]:
             break
         print("Invalid input! Please enter 'yes' or 'no'.")
-
+    #house rules equals truw
     house_rules = house_rules_input == "yes"
 
     game = Game(players, house_rules)
