@@ -5,8 +5,8 @@ import sys
 import time
 
 class Card:
-    def __init__(self, color, value):
-        self._color = color
+    def __init__(self, colour, value):
+        self._colour = colour
         self._value = value
         self._is_swap = value == "Swap"
 
@@ -15,13 +15,13 @@ class Card:
         if self.get_value() in ['Wild', '+4']:
             return f"{self.get_value()}"
         else:
-            return f"{self.get_color()} {self.get_value()}"
+            return f"{self.get_colour()} {self.get_value()}"
 
-    def get_color(self):
-        return self._color
+    def get_colour(self):
+        return self._colour
 
-    def set_color(self, color):
-        self._color = color
+    def set_colour(self, colour):
+        self._colour = colour
 
     def get_value(self):
         return self._value
@@ -35,19 +35,19 @@ class Deck:
         self._cards = []
 
     def create_deck(self):
-            colors = ['Red', 'Yellow', 'Green', 'Blue']
+            colours = ['Red', 'Yellow', 'Green', 'Blue']
             values = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', 'Draw Two']
             special_values = ['Wild', '+4', 'Swap']
 
-            for color in colors:
+            for colour in colours:
                 for value in values:
                     for _ in range(2):
-                        self._cards.append(Card(color, value))
-                self._cards.append(Card(color, '0'))  # Only one '0' card per color
+                        self._cards.append(Card(colour, value))
+                self._cards.append(Card(colour, '0'))  # Only one '0' card per colour
 
             for value in special_values:
                 for _ in range(4):  # Four 'Wild' and '+4' cards each
-                    self._cards.append(Card(None, value))  # No color assigned initially
+                    self._cards.append(Card(None, value))  # No colour assigned initially
 
     def shuffle(self):
         random.shuffle(self._cards)
@@ -83,14 +83,14 @@ class Player:
     def is_valid_move(self, card, top_card):
             if card.get_value() in ["Wild", "+4"]:
                 if card.get_value() == "+4":
-                    # Check if player has no other cards of the current color in their hand
+                    # Check if player has no other cards of the current colour in their hand
                     for c in self._hand:
-                        if c.get_color() == top_card.get_color():
+                        if c.get_colour() == top_card.get_colour():
                             return False
                 return True  # 'Wild' and '+4' cards can be played at any time
 
             return (
-                card.get_color() == top_card.get_color()
+                card.get_colour() == top_card.get_colour()
                 or card.get_value() == top_card.get_value()
             )
 
@@ -119,12 +119,12 @@ class Player:
                     print(f"{self._name} swaps hands with {other_player._name}!")
 
                 if card.get_value() == "Wild":
-                    color = self.select_color()
-                    card.set_color(color)
+                    colour = self.select_colour()
+                    card.set_colour(colour)
 
                 elif card.get_value() == "+4":
-                    color = self.select_color()
-                    card.set_color(color)
+                    colour = self.select_colour()
+                    card.set_colour(colour)
                     next_player = game.get_next_player()
                     next_player.draw_card(game.get_deck(), 4)
                     game.skip_turn()
@@ -150,17 +150,17 @@ class Player:
 
 
 
-    def select_color(self):
-            valid_colors = ['Red', 'Yellow', 'Green', 'Blue']
-            print("Select a color:")
-            for i, color in enumerate(valid_colors):
-                print(f"{i + 1}. {color}")
+    def select_colour(self):
+            valid_colours = ['Red', 'Yellow', 'Green', 'Blue']
+            print("Select a colour:")
+            for i, colour in enumerate(valid_colours):
+                print(f"{i + 1}. {colour}")
 
             while True:
                 try:
-                    choice = int(input("Enter the index of the color: "))
-                    if 1 <= choice <= len(valid_colors):
-                        return valid_colors[choice - 1]
+                    choice = int(input("Enter the index of the colour: "))
+                    if 1 <= choice <= len(valid_colours):
+                        return valid_colours[choice - 1]
                     else:
                         print("Invalid choice! Please enter a valid index.")
                 except ValueError:
@@ -305,7 +305,7 @@ class Game:
 
         current_player = self.current_player()  
         for card in current_player._hand:  
-            if card.get_color() == top_card.get_color() or card.get_value() == top_card.get_value() or card.get_value() in ["Wild", "+4"]:
+            if card.get_colour() == top_card.get_colour() or card.get_value() == top_card.get_value() or card.get_value() in ["Wild", "+4"]:
                 valid_moves.append(card)
         return valid_moves
 
